@@ -1,10 +1,13 @@
 defmodule HTTPoison.Base do
   defmacro __using__(_) do
     quote do
+      @type headers :: headers
+      @spec start :: :ok | {:error, any}
       def start do
         Application.Behaviour.start(:httpoison)
       end
 
+      @spec process_url(String.t) :: String.t
       def process_url(url) do
         unless url =~ %r/\Ahttps?:\/\// do
           "http://" <> url
@@ -13,18 +16,25 @@ defmodule HTTPoison.Base do
         end
       end
 
+      @spec process_request_body(binary) :: binary
       def process_request_body(body), do: body
 
+      @spec process_response_body(binary) :: binary
       def process_response_body(body), do: body
 
+      @spec process_request_headers(headers) :: headers
       def process_request_headers(headers), do: headers
 
+      @spec process_response_chunk(binary) :: binary
       def process_response_chunk(chunk), do: chunk
 
+      @spec process_headers(headers) :: headers
       def process_headers(headers), do: headers
 
+      @spec process_status_code(integer) :: integer
       def process_status_code(status_code), do: status_code
 
+      @spec transformer(pid) :: HTTPoison.AsyncEnd.t
       def transformer(target) do
         receive do
           {:hackney_response, id, {:status, code, _reason}} ->
@@ -54,6 +64,7 @@ defmodule HTTPoison.Base do
       Returns HTTPoison.Response if successful.
       Raises  HTTPoison.HTTPError if failed.
       """
+      @spec request(atom, String.t, binary, headers, [{atom, any}]) :: HTTPoison.Response.t | HTTPoison.AsyncResponse.t
       def request(method, url, body // "", headers // [], options // []) do
         timeout = Keyword.get options, :timeout, 5000
         stream_to = Keyword.get options, :stream_to
@@ -83,13 +94,28 @@ defmodule HTTPoison.Base do
          end
       end
 
+      @type response :: HTTPoison.Response.t | HTTPoison.AsyncResponse.t
+
+      @spec get(String.t, headers, [{atom, any}]) :: response
       def get(url, headers // [], options // []),         do: request(:get, url, "", headers, options)
-      def put(url, body, headers // [], options // []),   do: request(:put, url, body, headers, options)
+
+      @spec head(String.t, headers, [{atom, any}]) :: response
       def head(url, headers // [], options // []),        do: request(:head, url, "", headers, options)
-      def post(url, body, headers // [], options // []),  do: request(:post, url, body, headers, options)
-      def patch(url, body, headers // [], options // []), do: request(:patch, url, body, headers, options)
+
+      @spec delete(String.t, headers, [{atom, any}]) :: response
       def delete(url, headers // [], options // []),      do: request(:delete, url, "", headers, options)
+
+      @spec options(String.t, headers, [{atom, any}]) :: response
       def options(url, headers // [], options // []),     do: request(:options, url, "", headers, options)
+
+      @spec put(String.t, binary, headers, [{atom, any}]) :: response
+      def put(url, body, headers // [], options // []),   do: request(:put, url, body, headers, options)
+
+      @spec post(String.t, binary, headers, [{atom, any}]) :: response
+      def post(url, body, headers // [], options // []),  do: request(:post, url, body, headers, options)
+
+      @spec patch(String.t, binary, headers, [{atom, any}]) :: response
+      def patch(url, body, headers // [], options // []), do: request(:patch, url, body, headers, options)
 
       defoverridable Module.definitions_in(__MODULE__)
     end
@@ -110,6 +136,5 @@ defmodule HTTPoison do
   defrecord AsyncEnd, id: nil
 
   defexception HTTPError, message: nil
-
   use HTTPoison.Base
 end

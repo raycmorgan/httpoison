@@ -5,7 +5,11 @@ defmodule HTTPoisonTest do
   import PathHelpers
 
   setup_all do
-    :ok = Application.Behaviour.start(:httparrot)
+    [:compiler, :syntax_tools, :ranch, :cowlib, :cowboy, :jsx, :jsex, :httparrot]
+      |> Enum.map(&:application.start/1)
+      |> Enum.all?(fn (res) -> res == :ok end)
+      |> (fn (true) -> :ok;
+             (false) -> :error end).()
   end
 
   test "get" do
@@ -78,12 +82,12 @@ defmodule HTTPoisonTest do
   end
 
   test "asynchronous request" do
-    HTTPoison.AsyncResponse[id: id] = HTTPoison.get "localhost:8080/get", [], [stream_to: self]
+    %HTTPoison.AsyncResponse{id: id} = HTTPoison.get "localhost:8080/get", [], [stream_to: self]
 
-    assert_receive HTTPoison.AsyncStatus[id: ^id, code: 200], 1_000
-    assert_receive HTTPoison.AsyncHeaders[id: ^id, headers: _headers], 1_000
-    assert_receive HTTPoison.AsyncChunk[id: ^id, chunk: _chunk], 1_000
-    assert_receive HTTPoison.AsyncEnd[id: ^id], 1_000
+    assert_receive %HTTPoison.AsyncStatus{id: ^id, code: 200}, 1_000
+    assert_receive %HTTPoison.AsyncHeaders{id: ^id, headers: _headers}, 1_000
+    assert_receive %HTTPoison.AsyncChunk{id: ^id, chunk: _chunk}, 1_000
+    assert_receive %HTTPoison.AsyncEnd{id: ^id}, 1_000
   end
 
   defp assert_response(response, function \\ nil) do

@@ -5,11 +5,7 @@ defmodule HTTPoisonTest do
   import PathHelpers
 
   setup_all do
-    [:compiler, :syntax_tools, :ranch, :cowlib, :cowboy, :jsx, :jsex, :httparrot]
-      |> Enum.map(&:application.start/1)
-      |> Enum.all?(fn (res) -> res == :ok end)
-      |> (fn (true) -> :ok;
-             (false) -> :error end).()
+    {:ok, _} = :application.ensure_all_started(:httparrot)
   end
 
   test "get" do
